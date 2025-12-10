@@ -1,0 +1,45 @@
+### RR调度算法实现
+
+时间片轮转调度(Round-Robin Scheduling)算法非常简单。它为每一个进程维护了一个最大运行时间片。当一个进程运行够了其最大运行时间片那么长的时间后，调度器会把它标记为需要调度，并且把它的进程控制块放在队尾，重置其时间片。这种调度算法保证了公平性，每个进程都有均等的机会使用CPU，但是没有区分不同进程的优先级（这个也就是在Stride算法中需要考虑的问题）。
+
+在当前进程的运行过程中，每过一段时间就会触发一次时钟中断，在时钟中断的处理函数中会调用proc_tick减少其时间片。当时间片减少为0时，便把当前进程设置为可调度。当scheduler来调度当前进程时，如果当前进程状态依旧为PROC_RUNNABLE，便会将当前进程放到rq的最后进行排队，直到排到这个进程时才会再次获取CPU来执行。
+
+下面我们来实现以下时间片轮转算法相对应的调度器接口吧！
+
+首先是`enqueue`操作。RR算法直接把需要入队的进程放在调度队列的尾端（可以通过调用list_add_before实现），并且如果这个进程的剩余时间片为0（刚刚用完时间片被收回CPU），则需要把它的剩余时间片设为最大时间片。最后记得把rq中的进程数目更新。
+
+```c
+static void
+RR_enqueue(struct run_queue *rq, struct proc_struct *proc) {
+    // LAB6: YOUR CODE
+}
+```
+
+`dequeue`操作非常普通，将相应的项从队列中删除即可（可以通过调用list_del_init实现），最后同样记得把rq中的进程数目更新：
+
+```c
+static void
+RR_dequeue(struct run_queue *rq, struct proc_struct *proc) {
+    // LAB6: YOUR CODE
+}
+```
+
+`pick_next`选取队列头的表项，用`le2proc`函数获得对应的进程控制块，返回：
+
+```c
+static struct proc_struct *
+RR_pick_next(struct run_queue *rq) {
+    // LAB6: YOUR CODE
+}
+```
+
+`proc_tick`函数在每一次时钟中断调用。在这里，我们需要对当前正在运行的进程的剩余时间片减一。如果在减一后，其剩余时间片为0，那么我们就把这个进程标记为“需要调度”，这样在中断处理完之后内核判断进程是否需要调度的时候就会把它进行调度：
+
+```c
+static void
+RR_proc_tick(struct run_queue *rq, struct proc_struct *proc) {
+    // LAB6: YOUR CODE
+}
+```
+
+至此我们就实现完了和时间片轮转算法相关的所有重要接口。类似于RR算法，我们也可以参照这个方法实现自己的调度算法。本次实验中还需要同学们自己实现Stride调度算法。
